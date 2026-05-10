@@ -135,7 +135,7 @@
             </div>
             
             <!-- JavaScript-only input restriction -->
-            <p id="inputError" class="text-red-600 mt-2 text-sm hidden text-right font-medium">الرجاء إدخال أرقام فقط.</p>
+            <p id="inputError" class="text-red-600 mt-2 text-sm hidden text-right font-medium">الرجاء إدخال حروف أو أرقام فقط.</p>
 
             <!-- Results Area -->
             <div id="resultsArea" class="mt-10 min-h-[150px]">
@@ -160,52 +160,100 @@
         </div>
     </main>
     
-    // ... existing constants ...
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxgxCbWCuh51rPttyibapuv4NFV3YNoVH17i6qOuj5oFQc82OXFDFjZud1NZPZPBurJ/exec";
 
-// 1. Updated Input validation: Allow Arabic letters, English letters, and numbers
-certNumberInput.addEventListener('input', function(e) {
-    // This regex allows: Arabic (\u0600-\u06FF), English (a-zA-Z), and Numbers (0-9)
-    const regex = /^[\u0600-\u06FFa-zA-Z0-9]*$/;
-    
-    if (!regex.test(e.target.value)) {
-        // Remove characters that aren't letters or numbers
-        e.target.value = e.target.value.replace(/[^\u0600-\u06FFa-zA-Z0-9]/g, '');
-        inputError.classList.remove('hidden');
-        inputError.textContent = "الرجاء إدخال حروف أو أرقام فقط.";
-    } else {
-        inputError.classList.add('hidden');
-    }
-});
+        const searchButton = document.getElementById('searchButton');
+        const certNumberInput = document.getElementById('certNumberInput');
+        const resultsArea = document.getElementById('resultsArea');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const certLink = document.getElementById('certLink');
+        const inputError = document.getElementById('inputError');
 
-searchButton.addEventListener('click', function() {
-    const certNumber = certNumberInput.value.trim();
+        // Input validation: Allow Arabic letters, English letters, and numbers
+        certNumberInput.addEventListener('input', function(e) {
+            const regex = /^[\u0600-\u06FFa-zA-Z0-9]*$/;
+            
+            if (!regex.test(e.target.value)) {
+                e.target.value = e.target.value.replace(/[^\u0600-\u06FFa-zA-Z0-9]/g, '');
+                inputError.classList.remove('hidden');
+                inputError.textContent = "الرجاء إدخال حروف أو أرقام فقط.";
+            } else {
+                inputError.classList.add('hidden');
+            }
+        });
 
-    // Reset UI
-    loadingSpinner.classList.add('hidden');
-    errorMessage.classList.add('hidden');
-    successMessage.classList.add('hidden');
-    inputError.classList.add('hidden');
+        searchButton.addEventListener('click', function() {
+            const certNumber = certNumberInput.value.trim();
 
-    // Check for empty input
-    if (certNumber === "") {
-        inputError.textContent = "الرجاء إدخال رقم الشهادة.";
-        inputError.classList.remove('hidden');
-        return;
-    }
-    
-    // 2. Updated Double Check: Validate alphanumeric before sending to Google Script
-    const alphanumericCheck = /^[\u0600-\u06FFa-zA-Z0-9]+$/;
-    if (!alphanumericCheck.test(certNumber)) {
-        inputError.textContent = "الرجاء إدخال حروف أو أرقام فقط.";
-        inputError.classList.remove('hidden');
-        return;
-    }
+            // Reset UI
+            loadingSpinner.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            successMessage.classList.add('hidden');
+            inputError.classList.add('hidden');
 
-    // ... rest of your fetch logic remains the same ...
-    loadingSpinner.classList.remove('hidden');
-    const searchUrl = `${WEB_APP_URL}?certNumber=${certNumber}`;
-    // ...
-});
+            // Check for empty input
+            if (certNumber === "") {
+                inputError.textContent = "الرجاء إدخال رقم الشهادة.";
+                inputError.classList.remove('hidden');
+                return;
+            }
+            
+            // Double Check: Validate alphanumeric before sending
+            const alphanumericCheck = /^[\u0600-\u06FFa-zA-Z0-9]+$/;
+            if (!alphanumericCheck.test(certNumber)) {
+                inputError.textContent = "الرجاء إدخال حروف أو أرقام فقط.";
+                inputError.classList.remove('hidden');
+                return;
+            }
+
+            loadingSpinner.classList.remove('hidden');
+            const searchUrl = `${WEB_APP_URL}?certNumber=${certNumber}`;
+            
+            // Make the API call
+            fetch(searchUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Network response was not ok: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    loadingSpinner.classList.add('hidden');
+                    
+                    if (data.status === "found") {
+                        certLink.href = data.fileUrl;
+                        successMessage.classList.remove('hidden');
+                    } else if (data.status === "not_found") {
+                        errorMessage.textContent = "لم يتم العثور على شهادة بهذا الرقم. يرجى التحقق من الرقم والمحاولة مرة أخرى.";
+                        errorMessage.classList.remove('hidden');
+                    } else {
+                        throw new Error(data.message || 'Unknown error from script');
+                    }
+                })
+                .catch(error => {
+                    console.error('Fetch Error:', error);
+                    loadingSpinner.classList.add('hidden');
+                    errorMessage.textContent = "حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقًا.";
+                    errorMessage.classList.remove('hidden');
+                });
+        });
+
+        // Mobile menu functionality
+        const mobileMenuButton = document.getElementById('mobileMenuButton');
+        const closeMobileMenuButton = document.getElementById('closeMobileMenuButton');
+        const mobileMenu = document.getElementById('mobileMenu');
+
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('open');
+        });
+
+        closeMobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.remove('open');
+        });
+    </script>
 
     <!-- Footer -->
     <footer class="bg-gray-900 text-white py-10 mt-auto">
