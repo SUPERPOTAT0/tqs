@@ -160,107 +160,52 @@
         </div>
     </main>
     
-    <script>
-        // *** Your Web App URL is pre-filled ***
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxgxCbWCuh51rPttyibapuv4NFV3YNoVH17i6qOuj5oFQc82OXFDFjZud1NZPZPBurJ/exec";
-        // ***************************************
+    // ... existing constants ...
 
-        const searchButton = document.getElementById('searchButton');
-        const certNumberInput = document.getElementById('certNumberInput');
-        const resultsArea = document.getElementById('resultsArea');
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        const errorMessage = document.getElementById('errorMessage');
-        const successMessage = document.getElementById('successMessage');
-        const certLink = document.getElementById('certLink');
-        const inputError = document.getElementById('inputError');
+// 1. Updated Input validation: Allow Arabic letters, English letters, and numbers
+certNumberInput.addEventListener('input', function(e) {
+    // This regex allows: Arabic (\u0600-\u06FF), English (a-zA-Z), and Numbers (0-9)
+    const regex = /^[\u0600-\u06FFa-zA-Z0-9]*$/;
+    
+    if (!regex.test(e.target.value)) {
+        // Remove characters that aren't letters or numbers
+        e.target.value = e.target.value.replace(/[^\u0600-\u06FFa-zA-Z0-9]/g, '');
+        inputError.classList.remove('hidden');
+        inputError.textContent = "الرجاء إدخال حروف أو أرقام فقط.";
+    } else {
+        inputError.classList.add('hidden');
+    }
+});
 
-        // Input validation: Only allow numbers
-        certNumberInput.addEventListener('input', function(e) {
-            const regex = /^[0-9]*$/;
-            if (!regex.test(e.target.value)) {
-                e.target.value = e.target.value.replace(/[^0-9]/g, '');
-                inputError.classList.remove('hidden');
-                inputError.textContent = "الرجاء إدخال أرقام فقط.";
-            } else {
-                inputError.classList.add('hidden');
-            }
-        });
+searchButton.addEventListener('click', function() {
+    const certNumber = certNumberInput.value.trim();
 
-        searchButton.addEventListener('click', function() {
-            const certNumber = certNumberInput.value.trim();
+    // Reset UI
+    loadingSpinner.classList.add('hidden');
+    errorMessage.classList.add('hidden');
+    successMessage.classList.add('hidden');
+    inputError.classList.add('hidden');
 
-            // Reset UI
-            loadingSpinner.classList.add('hidden');
-            errorMessage.classList.add('hidden');
-            successMessage.classList.add('hidden');
-            inputError.classList.add('hidden');
+    // Check for empty input
+    if (certNumber === "") {
+        inputError.textContent = "الرجاء إدخال رقم الشهادة.";
+        inputError.classList.remove('hidden');
+        return;
+    }
+    
+    // 2. Updated Double Check: Validate alphanumeric before sending to Google Script
+    const alphanumericCheck = /^[\u0600-\u06FFa-zA-Z0-9]+$/;
+    if (!alphanumericCheck.test(certNumber)) {
+        inputError.textContent = "الرجاء إدخال حروف أو أرقام فقط.";
+        inputError.classList.remove('hidden');
+        return;
+    }
 
-            // Check for empty input
-            if (certNumber === "") {
-                inputError.textContent = "الرجاء إدخال رقم الشهادة.";
-                inputError.classList.remove('hidden');
-                return;
-            }
-            
-            // Check for non-numeric input (double check)
-            if (!/^[0-9]+$/.test(certNumber)) {
-                inputError.textContent = "الرجاء إدخال أرقام فقط.";
-                inputError.classList.remove('hidden');
-                return;
-            }
-
-            // Show spinner and start search
-            loadingSpinner.classList.remove('hidden');
-            
-            // Construct the URL with query parameter
-            const searchUrl = `${WEB_APP_URL}?certNumber=${certNumber}`;
-
-            // Make the API call to Google Apps Script
-            fetch(searchUrl)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Network response was not ok: ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    loadingSpinner.classList.add('hidden');
-                    
-                    if (data.status === "found") {
-                        // Success: Certificate found
-                        certLink.href = data.fileUrl;
-                        successMessage.classList.remove('hidden');
-                    } else if (data.status === "not_found") {
-                        // Error: Certificate not found
-                        errorMessage.textContent = "لم يتم العثور على شهادة بهذا الرقم. الرجاء التأكد من الرقم والمحاولة مرة أخرى.";
-                        errorMessage.classList.remove('hidden');
-                    } else {
-                        // Other error from the script
-                        throw new Error(data.message || 'Unknown error from script');
-                    }
-                })
-                .catch(error => {
-                    // Handle fetch errors (network, script error, etc.)
-                    console.error('Fetch Error:', error);
-                    loadingSpinner.classList.add('hidden');
-                    errorMessage.textContent = "حدث خطأ أثناء الاتصال بالخادم. الرجاء المحاولة مرة أخرى لاحقاً.";
-                    errorMessage.classList.remove('hidden');
-                });
-        });
-
-        // Mobile menu functionality
-        const mobileMenuButton = document.getElementById('mobileMenuButton');
-        const closeMobileMenuButton = document.getElementById('closeMobileMenuButton');
-        const mobileMenu = document.getElementById('mobileMenu');
-
-        mobileMenuButton.addEventListener('click', () => {
-            mobileMenu.classList.toggle('open');
-        });
-
-        closeMobileMenuButton.addEventListener('click', () => {
-            mobileMenu.classList.remove('open');
-        });
-    </script>
+    // ... rest of your fetch logic remains the same ...
+    loadingSpinner.classList.remove('hidden');
+    const searchUrl = `${WEB_APP_URL}?certNumber=${certNumber}`;
+    // ...
+});
 
     <!-- Footer -->
     <footer class="bg-gray-900 text-white py-10 mt-auto">
